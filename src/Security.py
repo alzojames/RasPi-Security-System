@@ -10,24 +10,25 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setup(11, GPIO.IN)         #Read output from PIR motion sensor
 GPIO.setup(3, GPIO.OUT)         #LED output pin
 
+# this function use Twilio to send an SMS notification
 def sendSMS():
-    print("Made it")
-    account_sid = "******************"
-    auth_token = "*******************"
-    time = datetime.time
-    messege = "Unknown person dectected: "
-    
+    account_sid = "******************************"
+    auth_token = "***************************"
+    t = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(t)
+    messege = "Unknown person dectected in living room: " + str(t)
+
     client = Client(account_sid, auth_token)
 
     client.api.account.messages.create(
-        to="+reciving number",
-        from_="+Twilio number",
+        to="+###########", #Phone number of the person being alerted
+        from_="+##########", #Twilio phone number
         body=messege)
-    
-    
-    
+
+
+
+# this function use opencv to detect if there is a face in frame
 def faceDetect():
-    # multiple cascades: https://github.com/Itseez/opencv/tree/master/data/haarcascades
 
     #https://github.com/Itseez/opencv/blob/master/data/haarcascades/haarcascade_frontalface_default.xml
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -35,48 +36,52 @@ def faceDetect():
     eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
     cap = cv2.VideoCapture(0)
 
-    
+
     while 1:
-        
+        found = False 
         ret, img = cap.read()
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
+        #look for a face shape
         for (x,y,w,h) in faces:
             cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
             roi_gray = gray[y:y+h, x:x+w]
             roi_color = img[y:y+h, x:x+w]
             print("Found face")
-            sendSMS()
-            
+
+            #look for eyes
             eyes = eye_cascade.detectMultiScale(roi_gray)
             for (ex,ey,ew,eh) in eyes:
                 cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+            
+            #if face a eyes are found, found var becomes true 
+            found = True
 
-        cv2.imshow('img',img)
-        k = cv2.waitKey(30) & 0xff
-        if k == 27:
-            break
+        #send sendSMS and resume looking motion
+        if found:
+                sendSMS()
+                break
 
     cap.release()
     cv2.destroyAllWindows()
-    
+
+# this function talks to the motion sensor to see if there is any motion in a room
+# if there is any motion the camera will be triggered
 def findMotion():
     while True:
        i=GPIO.input(11)
-       if i==0:                 #When output from motion sensor is LOW
-            # print "No intruders",i
-             GPIO.output(3, 0)  #Turn OFF LED
+       if i==0:
+             GPIO.output(3, 0)
              time.sleep(0.1)
-       elif i==1:               #When output from motion sensor is HIGH
-            # print "Intruder detected",i
-             GPIO.output(3, 1)  #Turn ON LED
-             faceDetect()
-             time.sleep(0.1)
-             
+       elif i==1:
+       		#The is motion, the led is turn on and the camera is turned on
+            GPIO.output(3, 1)
+            faceDetect()
+            time.sleep(0.1)
+
 def start():
     while True:
         findMotion()
-        
-sendSMS()
-#start()
+
+start()
