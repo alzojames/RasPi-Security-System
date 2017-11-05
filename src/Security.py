@@ -12,16 +12,16 @@ GPIO.setup(3, GPIO.OUT)         #LED output pin
 
 def sendSMS():
     print("Made it")
-    account_sid = "ACe243a3973c4849c7c3d1ec41825ec525"
-    auth_token = "8f63019801ef926f048613fc19028f6c"
+    account_sid = "******************"
+    auth_token = "*******************"
     time = datetime.time
     messege = "Unknown person dectected: "
     
     client = Client(account_sid, auth_token)
 
     client.api.account.messages.create(
-        to="+14049882300",
-        from_="+16783943526",
+        to="+reciving number",
+        from_="+Twilio number",
         body=messege)
     
     
